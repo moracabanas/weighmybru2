@@ -115,7 +115,6 @@ The `Display` class owns the timer system:
 | POST | `/api/timer/start` | Start timer |
 | POST | `/api/timer/stop` | Stop timer |
 | POST | `/api/timer/reset` | Reset timer |
-<<<<<<< HEAD
 | POST | `/api/tare` | Tare scale; if STOPPED resets timer, if RUNNING resets auto-brew only |
 | GET | `/api/weight-fast` | Fast weight-only response |
 | GET | `/api/brew/weight` | GaggiMate-compatible weight |
@@ -128,12 +127,70 @@ Settings stored via `Preferences` class:
 - `display` namespace - decimal places
 - `wifi` namespace - WiFi credentials
 
-## Testing Strategy
+## Testing Strategy (GoogleTest + GMock)
 
-### Unit Tests
-- Location: `test/` directory
-- Run on native platform: `pio test -e native`
-- Use Unity test framework (PlatformIO built-in)
+### Framework
+- **Framework**: GoogleTest + GMock (native platform)
+- **Test Location**: `test/unit/` for unit tests, `test/integration/` for integration
+- **Mock Location**: `test/mocks/` for mock implementations
+- **Execution**: `pio test -e native`
+
+### Test Structure
+```
+test/
+├── mocks/                   # Mock implementations (header-only)
+│   └── MockHX711.h          # Mock HX711 interface
+├── unit/                    # Unit tests (GoogleTest)
+│   ├── test_flowrate.cpp    # FlowRate pure calculation tests
+│   ├── test_scale.cpp       # Scale with mocked HX711
+│   ├── test_battery.cpp      # BatteryMonitor tests
+│   └── test_display_timer.cpp # Display timer state tests
+└── integration/             # Future integration tests
+```
+
+### Mocking Strategy
+- Use **interface-based mocking** with header-only mocks
+- **Dependency injection** via constructor parameters
+- **No heap allocation** in tests - use stack-allocated mocks
+- Mock hardware interfaces (HX711, etc.) to test business logic
+
+### Running Tests
+```bash
+# Run all unit tests
+pio test -e native
+
+# Run with verbose output
+pio test -e native -v
+
+# Run specific test file
+pio test -e native -f test_flowrate
+```
+
+### Test Requirements (MANDATORY)
+- [ ] All new classes MUST have unit tests before PR
+- [ ] All bug fixes MUST have regression tests
+- [ ] Tests MUST pass on native platform before merge
+- [ ] Test coverage should be >80% for new code
+
+### CI/CD Enforcement
+- Unit tests run on EVERY push/PR (`.github/workflows/build-dev.yml`)
+- **Tests are required for PR merge** (branch protection on `main`)
+- Firmware builds only run AFTER unit tests pass
+- `test-build` job has `needs: unit-tests` dependency
+
+### Testable Architecture
+Classes ordered by testability:
+1. **FlowRate** ⭐⭐⭐ HIGH - Pure calculations, no hardware deps
+2. **Scale** ⭐⭐ MODERATE - HX711 dependency, needs mock interface
+3. **BatteryMonitor** ⭐⭐ MODERATE - Voltage formula testable
+4. **Display** ⭐ LOW - Timer logic testable, OLED deps need mock
+
+### Writing Testable Code
+1. **Cut at the interface** - hardware access via abstract interface
+2. **Constructor injection** - pass dependencies via constructor
+3. **No bare-metal calls** - `digitalWrite()` → `hal_->digitalWrite()`
+4. **Keep interfaces narrow** - mock only what you test
+5. **Use `lib_ignore`** - exclude hardware files from native builds
 
 ### Hardware Testing
 - Manual flash + test on physical hardware
@@ -141,10 +198,9 @@ Settings stored via `Preferences` class:
   - ESP32-S3 Supermini
   - XIAO ESP32S3
 
-### CI/CD
-- GitHub Actions (`.github/workflows/`)
-- `build-dev.yml` - Build verification on push/PR
-- No automated hardware tests (yet)
+### Editor Integration
+- **VSCode**: PlatformIO extension with native test support (`.vscode/settings.json`)
+- **Zed**: Use tasks via `.zed/config.toml` (limited PlatformIO support)
 
 ## Feature Development Workflow
 
@@ -201,3 +257,11 @@ pio run -e esp32s3-supermini -t uploadfs
 ## Future Features (See AGENTS.md in docs/)
 
 - AutoBrewTimer: Checkbox to auto-start/stop timer based on weight detection
+
+## TODO: Integration Tests
+
+**Pending (Future PR)**: Add integration tests for:
+- WebServer REST API endpoints with mocked AsyncWebServer
+- BluetoothScale BLE protocol with mocked NimBLE
+- WiFiManager with mocked WiFi
+- Full hardware-in-the-loop tests on ESP32-S3
