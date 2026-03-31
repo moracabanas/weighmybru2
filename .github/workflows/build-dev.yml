@@ -28,7 +28,7 @@ jobs:
 
     - name: Run unit tests
       run: |
-        pio test -e native --output-format=compact
+        pio test -e native -v
 
     - name: Upload test results
       if: always()
