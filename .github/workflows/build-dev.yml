@@ -2,36 +2,41 @@ name: Build Development
 
 on:
   push:
-    branches: [ main, master, develop, 'feature/*' ]
+    branches: [ main, master, develop, 'feature/*', 'unit-tests' ]
   pull_request:
     branches: [ main, master, develop ]
-    
+    types: [opened, synchronize, reopened]
+
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    
+    outputs:
+      test_result: ${{ job.status }}
+
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
-      
+      uses: actions/checkout@v6
+
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.x'
-        
+
     - name: Install PlatformIO
       run: |
         pip install platformio
-        
+
     - name: Run unit tests
       run: |
         pio test -e native -v
-        
-    - name: Test summary
+
+    - name: Upload test results
+      if: always()
       run: |
-        echo "✅ Unit tests completed"
+        echo "Unit tests result: ${{ job.status }}"
 
   test-build:
+    needs: unit-tests
     runs-on: ubuntu-latest
     
     strategy:
@@ -40,10 +45,10 @@ jobs:
         
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.x'
         
@@ -53,35 +58,8 @@ jobs:
         pio upgrade --dev
         pio pkg update
         
-    - name: Extract build info
-      id: build_info
-      run: |
-        BUILD_NUMBER=$GITHUB_RUN_NUMBER
-        COMMIT_HASH=$(git rev-parse --short HEAD)
-        BUILD_DATE=$(date -u +"%b %d %Y")
-        BUILD_TIME=$(date -u +"%H:%M:%S")
-        
-        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_OUTPUT
-        echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_OUTPUT
-        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
-        
-        echo "Building development version"
-        echo "Build number: $BUILD_NUMBER"
-        echo "Commit: $COMMIT_HASH"
-        
     - name: Build firmware
       run: |
-        # Set build flags for development builds
-        export PLATFORMIO_BUILD_FLAGS="\
-          -DWEIGHMYBRU_BUILD_NUMBER=${{ steps.build_info.outputs.BUILD_NUMBER }} \
-          -DWEIGHMYBRU_COMMIT_HASH=\\\"${{ steps.build_info.outputs.COMMIT_HASH }}\\\" \
-          -DWEIGHMYBRU_BUILD_DATE=\\\"${{ steps.build_info.outputs.BUILD_DATE }}\\\" \
-          -DWEIGHMYBRU_BUILD_TIME=\\\"${{ steps.build_info.outputs.BUILD_TIME }}\\\""
-        
-        echo "Building ${{ matrix.environment }} with flags: $PLATFORMIO_BUILD_FLAGS"
-        
-        # Test build only
         pio run -e ${{ matrix.environment }}
         
         # Check binary size

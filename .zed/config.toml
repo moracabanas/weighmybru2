@@ -1,0 +1,13 @@
+[tasks]
+run-tests = { cmd = "pio", args = ["test", "-e", "native", "-v"], cwd = "." }
+run-tests-verbose = { cmd = "pio", args = ["test", "-e", "native", "-vv"], cwd = "." }
+
+[tasks.build-supermini]
+cmd = "pio"
+args = ["run", "-e", "esp32s3-supermini"]
+cwd = "."
+
+[tasks.build-xiao]
+cmd = "pio"
+args = ["run", "-e", "esp32s3-xiao"]
+cwd = "."
