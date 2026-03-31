@@ -202,23 +202,56 @@ Classes ordered by testability:
 - **VSCode**: PlatformIO extension with native test support (`.vscode/settings.json`)
 - **Zed**: Use tasks via `.zed/config.toml` (limited PlatformIO support)
 
-## Feature Development Workflow
+## Branch Structure
 
-### Branch Naming
 ```
-main              # Stable releases
-AutoBrewTimer    # Feature: Auto-brew timer checkbox
+master            # Stable releases - protected, requires CI passing
+staging          # Development integration - protected, requires PR
 ```
 
-### Development Process
-1. Create feature branch from `main`
+### Branch Protection (GitHub Settings)
+
+**master:**
+- Require status checks to pass: `unit-tests`, `test-build (esp32s3-supermini)`, `test-build (esp32s3-xiao)`
+- Require pull request before merging
+- Admins enforce protected rules
+- Direct pushes blocked
+
+**staging:**
+- Require pull request before merging
+- Prevent branch deletion
+- Direct pushes blocked
+
+## Development Workflow (Solo Vivecoder)
+
+### Feature Development Process
+1. Always work on `staging` branch
 2. Implement changes following conventions
 3. Build verification: `pio run -e esp32s3-supermini`
-4. Test on hardware
-5. Submit PR with code review checklist
+4. Run unit tests: `pio test -e native`
+5. Test on hardware
+6. Push to origin staging
+7. Create PR to master (CI runs automatically)
 
-## Code Review Checklist
+### CI/CD Pipeline
+- **Trigger**: Every push to `staging` or PR to `master`
+- **Jobs**:
+  1. `unit-tests` - Runs GoogleTest suite (32 tests)
+  2. `test-build` - Builds for esp32s3-supermini and esp32s3-xiao
+- **Blocking**: `test-build` jobs wait for `unit-tests` to pass
+- **Merge Requirement**: All status checks must pass on master
 
+### Solo Developer Guidelines
+- Work directly on `staging` (no feature branches needed for solo work)
+- PR to `master` is automatic after CI passes
+- `master` cannot be pushed to directly - only via PR
+- If CI fails on staging, fix locally before pushing
+
+## Pre-Merge Checklist
+
+- [ ] `pio test -e native` passes (all 32 tests)
+- [ ] `pio run -e esp32s3-supermini` builds without warnings
+- [ ] `pio run -e esp32s3-xiao` builds without warnings
 - [ ] Code compiles without warnings
 - [ ] Follows K&R brace style, 4-space indent
 - [ ] PascalCase classes, camelCase methods
@@ -227,6 +260,9 @@ AutoBrewTimer    # Feature: Auto-brew timer checkbox
 - [ ] API endpoints follow REST conventions
 - [ ] Preferences keys documented with defaults
 - [ ] Tested on ESP32-S3 Supermini AND XIAO
+- [ ] Web UI follows Alpine.js patterns
+- [ ] AGENTS.md updated if needed
+- [ ] No secrets/keys committed
 - [ ] Web UI follows Alpine.js patterns
 - [ ] AGENTS.md updated if needed
 - [ ] No secrets/keys committed
