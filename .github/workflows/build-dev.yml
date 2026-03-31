@@ -2,36 +2,41 @@ name: Build Development
 
 on:
   push:
-    branches: [ main, master, develop, 'feature/*' ]
+    branches: [ main, master, develop, 'feature/*', 'unit-tests' ]
   pull_request:
     branches: [ main, master, develop ]
-    
+    types: [opened, synchronize, reopened]
+
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    
+    outputs:
+      test_result: ${{ job.status }}
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-        
+
     - name: Install PlatformIO
       run: |
         pip install platformio
-        
+
     - name: Run unit tests
       run: |
-        pio test -e native -v
-        
-    - name: Test summary
+        pio test -e native --output-format=compact
+
+    - name: Upload test results
+      if: always()
       run: |
-        echo "✅ Unit tests completed"
+        echo "Unit tests result: ${{ job.status }}"
 
   test-build:
+    needs: unit-tests
     runs-on: ubuntu-latest
     
     strategy:
