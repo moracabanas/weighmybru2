@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       test_result: ${{ job.status }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
     - name: Checkout repository
@@ -38,6 +40,8 @@ jobs:
   test-build:
     needs: unit-tests
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     
     strategy:
       matrix:
