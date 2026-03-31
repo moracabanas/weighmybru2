@@ -287,8 +287,7 @@ void loop() {
   // Update battery monitor
   batteryMonitor.update();
   
-  // Update display less frequently for power saving
-  if (millis() - lastDisplayUpdate >= 100) { // Reduced display refresh rate to 10Hz
+  if (millis() - lastDisplayUpdate >= 25) {
     oledDisplay.update();
     lastDisplayUpdate = millis();
   }
